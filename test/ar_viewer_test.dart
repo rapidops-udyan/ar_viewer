@@ -23,6 +23,6 @@ void main() {
     MockArViewerPlatform fakePlatform = MockArViewerPlatform();
     ArViewerPlatform.instance = fakePlatform;
 
-    expect(await arViewerPlugin.getPlatformVersion(), '42');
+    expect(await arViewerPlugin.loadModel(), '42');
   });
 }

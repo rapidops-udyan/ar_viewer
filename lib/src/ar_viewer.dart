@@ -1,7 +1,7 @@
 import 'ar_viewer_platform_interface.dart';
 
 class ArViewer {
-  Future<String?> getPlatformVersion() {
-    return ArViewerPlatform.instance.getPlatformVersion();
+  Future<String?> loadModel(String modelUrl) {
+    return ArViewerPlatform.instance.loadModel(modelUrl);
   }
 }

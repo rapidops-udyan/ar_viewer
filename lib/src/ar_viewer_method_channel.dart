@@ -10,8 +10,10 @@ class MethodChannelArViewer extends ArViewerPlatform {
   final methodChannel = const MethodChannel('ar_viewer');
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
+  Future<String?> loadModel(String modelUrl) async {
+    final version = await methodChannel.invokeMethod<String>('loadModel', {
+      "modelUrl": modelUrl,
+    });
     return version;
   }
 }
