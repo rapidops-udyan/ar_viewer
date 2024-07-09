@@ -9,6 +9,12 @@ class MockArViewerPlatform
     implements ArViewerPlatform {
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
+
+  @override
+  Future<String?> loadModel(String modelUrl) {
+    // TODO: implement loadModel
+    throw UnimplementedError();
+  }
 }
 
 void main() {
@@ -23,6 +29,6 @@ void main() {
     MockArViewerPlatform fakePlatform = MockArViewerPlatform();
     ArViewerPlatform.instance = fakePlatform;
 
-    expect(await arViewerPlugin.loadModel(), '42');
+    expect(await arViewerPlugin.loadModel(""), '42');
   });
 }
