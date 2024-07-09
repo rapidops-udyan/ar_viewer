@@ -9,10 +9,8 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 
-/** ArViewerPlugin */
-class ArViewerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
+class ArViewerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
     private lateinit var channel: MethodChannel
     private var context: Context? = null
 
@@ -25,17 +23,18 @@ class ArViewerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
             "loadModel" -> {
+                val modelUrl = call.argument<String>("modelUrl")
                 context?.let {
-                    val intent = Intent(it, ArViewerActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT
+                    val intent = Intent(it, ArViewerActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra("MODEL_URL", modelUrl)
+                    }
                     it.startActivity(intent)
                     result.success(null)
                 } ?: result.error("NO_CONTEXT", "Unable to start ArViewerActivity", null)
             }
 
-            else -> {
-                result.notImplemented()
-            }
+            else -> result.notImplemented()
         }
     }
 

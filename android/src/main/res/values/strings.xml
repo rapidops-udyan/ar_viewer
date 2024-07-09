@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">AR Model Viewer Compose</string>
     <string name="point_your_phone_down">Point your phone down at an empty space, and move it around slowly</string>
-    <string name="tap_anywhere_to_add_model">Tap anywhere to add model</string>
+    <string name="loading_model">Loading model...</string>
+    <string name="tap_anywhere_to_add_model">Tap anywhere to add the model</string>
+    <string name="model_placed">Model placed. Interact with it to resize or move.</string>
 </resources>
