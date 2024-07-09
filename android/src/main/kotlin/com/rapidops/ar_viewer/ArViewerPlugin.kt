@@ -1,5 +1,7 @@
 package com.rapidops.ar_viewer
 
+import android.content.Context
+import android.content.Intent
 import androidx.annotation.NonNull
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -15,15 +17,22 @@ class ArViewerPlugin : FlutterPlugin, MethodCallHandler {
     /// This local reference serves to register the plugin with the Flutter Engine and unregister it
     /// when the Flutter Engine is detached from the Activity
     private lateinit var channel: MethodChannel
+    private var context: Context? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        context = flutterPluginBinding.applicationContext
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "ar_viewer")
         channel.setMethodCallHandler(this)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         if (call.method == "loadModel") {
-            result.success("Android ${android.os.Build.VERSION.RELEASE}")
+            context?.let {
+                val intent = Intent(it, ArViewerActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT
+                it.startActivity(intent)
+                result.success(null)
+            } ?: result.error("NO_CONTEXT", "Unable to start ArViewerActivity", null)
         } else {
             result.notImplemented()
         }

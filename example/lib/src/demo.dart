@@ -13,6 +13,11 @@ class _DemoState extends State<Demo> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold();
+    return  Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _arViewerPlugin.loadModel(""),
+        child: const Icon(Icons.arrow_right),
+      )
+    );
   }
 }
