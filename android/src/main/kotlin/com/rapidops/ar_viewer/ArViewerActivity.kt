@@ -4,13 +4,20 @@ import android.os.Bundle
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,68 +67,136 @@ class ArViewerActivity : ComponentActivity() {
         modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
 
         setContent {
-            Box(modifier = Modifier.fillMaxSize()) {
-                val engine = rememberEngine()
-                val modelLoader = rememberModelLoader(engine)
-                val materialLoader = rememberMaterialLoader(engine)
-                val cameraNode = rememberARCameraNode(engine)
-                val childNodes = rememberNodes()
-                val view = rememberView(engine)
-                val collisionSystem = rememberCollisionSystem(view)
+            ArViewerScreen()
+        }
+    }
 
-                var planeRenderer by remember { mutableStateOf(true) }
-                var trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
-                var frame by remember { mutableStateOf<Frame?>(null) }
-                var errorMessage by remember { mutableStateOf<String?>(null) }
-                var isLoading by remember { mutableStateOf(false) }
+    @Composable
+    fun ArViewerScreen() {
+        val engine = rememberEngine()
+        val modelLoader = rememberModelLoader(engine)
+        val materialLoader = rememberMaterialLoader(engine)
+        val cameraNode = rememberARCameraNode(engine)
+        val childNodes = rememberNodes()
+        val view = rememberView(engine)
+        val collisionSystem = rememberCollisionSystem(view)
 
-                ARScene(
-                    modifier = Modifier.fillMaxSize(),
-                    childNodes = childNodes,
-                    engine = engine,
-                    view = view,
-                    modelLoader = modelLoader,
-                    collisionSystem = collisionSystem,
-                    sessionConfiguration = { session, config ->
-                        config.apply {
-                            depthMode =
-                                if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-                                    Config.DepthMode.AUTOMATIC
-                                } else {
-                                    Config.DepthMode.DISABLED
-                                }
-                            instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
-                            lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+        var planeRenderer by remember { mutableStateOf(true) }
+        var trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
+        var frame by remember { mutableStateOf<Frame?>(null) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+        var isLoading by remember { mutableStateOf(false) }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            ARScene(
+                modifier = Modifier.fillMaxSize(),
+                childNodes = childNodes,
+                engine = engine,
+                view = view,
+                modelLoader = modelLoader,
+                collisionSystem = collisionSystem,
+                sessionConfiguration = { session, config ->
+                    config.apply {
+                        depthMode = if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+                            Config.DepthMode.AUTOMATIC
+                        } else {
+                            Config.DepthMode.DISABLED
                         }
-                    },
-                    cameraNode = cameraNode,
-                    planeRenderer = planeRenderer,
-                    onTrackingFailureChanged = { trackingFailureReason = it },
-                    onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
-                    onGestureListener = rememberOnGestureListener(
-                        onSingleTapConfirmed = { motionEvent, _ ->
-                            if (!isLoading) {
-                                handleTap(
-                                    motionEvent,
-                                    frame,
-                                    engine,
-                                    modelLoader,
-                                    materialLoader,
-                                    childNodes
-                                ) {
-                                    isLoading = it
-                                }
+                        instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
+                        lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                    }
+                },
+                cameraNode = cameraNode,
+                planeRenderer = planeRenderer,
+                onTrackingFailureChanged = { trackingFailureReason = it },
+                onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
+                onGestureListener = rememberOnGestureListener(
+                    onSingleTapConfirmed = { motionEvent, _ ->
+                        if (!isLoading) {
+                            handleTap(
+                                motionEvent,
+                                frame,
+                                engine,
+                                modelLoader,
+                                materialLoader,
+                                childNodes
+                            ) {
+                                isLoading = it
                             }
                         }
-                    )
+                    }
                 )
+            )
 
-                InfoText(
-                    trackingFailureReason = trackingFailureReason,
-                    childNodesEmpty = childNodes.isEmpty(),
-                    errorMessage = errorMessage,
-                    isLoading = isLoading
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    DropdownMenu("Dropdown 1")
+                    DropdownMenu("Dropdown 2")
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = { /* To be implemented */ },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
+                        Text("Button 1")
+                    }
+                    Button(
+                        onClick = { /* To be implemented */ },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    ) {
+                        Text("Button 2")
+                    }
+                }
+            }
+
+            InfoText(
+                trackingFailureReason = trackingFailureReason,
+                childNodesEmpty = childNodes.isEmpty(),
+                errorMessage = errorMessage,
+                isLoading = isLoading
+            )
+        }
+    }
+
+    @Composable
+    fun DropdownMenu(label: String) {
+        var expanded by remember { mutableStateOf(false) }
+        var selectedIndex by remember { mutableStateOf(0) }
+        val items = listOf("Option 1", "Option 2", "Option 3")
+
+        Box {
+            Button(onClick = { expanded = true }) {
+                Text(label)
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                items.forEachIndexed { index, item ->
+                    DropdownMenuItem(onClick = {
+                        selectedIndex = index
+                        expanded = false
+                    }) {
+                        Text(text = item)
+                    }
+                }
             }
         }
     }
@@ -141,14 +216,11 @@ class ArViewerActivity : ComponentActivity() {
                 setLoading(true)
                 lifecycleScope.launch {
                     try {
-                        // Remove previous node if exists
                         (childNodes as MutableList<AnchorNode>).clear()
-
                         val anchorNode =
                             createAnchorNode(engine, modelLoader, materialLoader, anchor)
                         childNodes.add(anchorNode)
                     } catch (e: Exception) {
-                        // Handle model loading error
                     } finally {
                         setLoading(false)
                     }
@@ -163,20 +235,12 @@ class ArViewerActivity : ComponentActivity() {
         anchor: Anchor,
     ): AnchorNode {
         val anchorNode = AnchorNode(engine = engine, anchor = anchor)
-        val modelNode = if (savedModelInstance != null) {
-            ModelNode(
-                modelInstance = savedModelInstance!!,
-                scaleToUnits = 0.5f
-            )
-        } else {
-            modelLoader.loadModelInstance(modelUrl)?.also {
-                savedModelInstance = it
-            }?.let { modelInstance ->
-                ModelNode(
-                    modelInstance = modelInstance,
-                    scaleToUnits = 0.5f
-                )
-            }
+        val modelNode = savedModelInstance?.let {
+            ModelNode(modelInstance = it, scaleToUnits = 0.5f)
+        } ?: modelLoader.loadModelInstance(modelUrl)?.also {
+            savedModelInstance = it
+        }?.let { modelInstance ->
+            ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
         } ?: throw IllegalStateException("Failed to load model")
 
         modelNode.apply {
@@ -209,14 +273,15 @@ fun InfoText(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .padding(bottom = 16.dp)
             .systemBarsPadding()
     ) {
         Text(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, start = 32.dp, end = 32.dp),
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 32.dp),
             textAlign = TextAlign.Center,
-            fontSize = 28.sp,
+            fontSize = 18.sp,
             color = Color.White,
             text = text
         )
