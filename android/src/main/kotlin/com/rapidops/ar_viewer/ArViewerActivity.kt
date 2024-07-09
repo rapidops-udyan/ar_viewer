@@ -62,9 +62,16 @@ class ArViewerActivity : ComponentActivity() {
     private lateinit var modelUrl: String
     private var savedModelInstance: ModelInstance? = null
 
+    //        store glb file material list name
+    var materialList = mutableListOf<String>()
+    var colorList = mutableListOf<String>()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
+
+        colorList = mutableListOf("Red", "Green", "Blue", "Yellow")
 
         setContent {
             ArViewerScreen()
@@ -86,6 +93,8 @@ class ArViewerActivity : ComponentActivity() {
         var frame by remember { mutableStateOf<Frame?>(null) }
         var errorMessage by remember { mutableStateOf<String?>(null) }
         var isLoading by remember { mutableStateOf(false) }
+
+
 
         Box(modifier = Modifier.fillMaxSize()) {
             ARScene(
@@ -110,22 +119,15 @@ class ArViewerActivity : ComponentActivity() {
                 planeRenderer = planeRenderer,
                 onTrackingFailureChanged = { trackingFailureReason = it },
                 onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
-                onGestureListener = rememberOnGestureListener(
-                    onSingleTapConfirmed = { motionEvent, _ ->
-                        if (!isLoading) {
-                            handleTap(
-                                motionEvent,
-                                frame,
-                                engine,
-                                modelLoader,
-                                materialLoader,
-                                childNodes
-                            ) {
-                                isLoading = it
-                            }
+                onGestureListener = rememberOnGestureListener(onSingleTapConfirmed = { motionEvent, _ ->
+                    if (!isLoading) {
+                        handleTap(
+                            motionEvent, frame, engine, modelLoader, materialLoader, childNodes
+                        ) {
+                            isLoading = it
                         }
                     }
-                )
+                })
             )
 
             Column(
@@ -137,8 +139,8 @@ class ArViewerActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    DropdownMenu("Dropdown 1")
-                    DropdownMenu("Dropdown 2")
+                    DropdownMenu("Materials", materialList)
+                    DropdownMenu("Colors", colorList)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -153,7 +155,7 @@ class ArViewerActivity : ComponentActivity() {
                             .weight(1f)
                             .padding(end = 8.dp)
                     ) {
-                        Text("Button 1")
+                        Text("Reset")
                     }
                     Button(
                         onClick = { /* To be implemented */ },
@@ -161,9 +163,10 @@ class ArViewerActivity : ComponentActivity() {
                             .weight(1f)
                             .padding(start = 8.dp)
                     ) {
-                        Text("Button 2")
+                        Text("Image")
                     }
                 }
+
             }
 
             InfoText(
@@ -176,19 +179,16 @@ class ArViewerActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DropdownMenu(label: String) {
+    fun DropdownMenu(label: String, itemsList: List<String>) {
         var expanded by remember { mutableStateOf(false) }
         var selectedIndex by remember { mutableStateOf(0) }
-        val items = listOf("Option 1", "Option 2", "Option 3")
+        val items = itemsList
 
         Box {
             Button(onClick = { expanded = true }) {
                 Text(label)
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 items.forEachIndexed { index, item ->
                     DropdownMenuItem(onClick = {
                         selectedIndex = index
@@ -211,8 +211,8 @@ class ArViewerActivity : ComponentActivity() {
         setLoading: (Boolean) -> Unit,
     ) {
         frame?.hitTest(motionEvent.x, motionEvent.y)
-            ?.firstOrNull { it.isValid(depthPoint = false, point = false) }
-            ?.createAnchorOrNull()?.let { anchor ->
+            ?.firstOrNull { it.isValid(depthPoint = false, point = false) }?.createAnchorOrNull()
+            ?.let { anchor ->
                 setLoading(true)
                 lifecycleScope.launch {
                     try {
@@ -240,6 +240,12 @@ class ArViewerActivity : ComponentActivity() {
         } ?: modelLoader.loadModelInstance(modelUrl)?.also {
             savedModelInstance = it
         }?.let { modelInstance ->
+            modelInstance.materialInstances.forEach { materialInstance ->
+//                add to materialList
+                materialList.add(materialInstance.name)
+
+//                materialInstance.setParameter("baseColorFactor", 1f, 1f, 1f, 1f)
+            }
             ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
         } ?: throw IllegalStateException("Failed to load model")
 
@@ -290,8 +296,7 @@ fun InfoText(
             CircularProgressIndicator(
                 modifier = Modifier
                     .size(50.dp)
-                    .align(Alignment.Center),
-                color = Color.White
+                    .align(Alignment.Center), color = Color.White
             )
         }
     }
