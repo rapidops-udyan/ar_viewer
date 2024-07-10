@@ -4,13 +4,17 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.util.Log
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,13 +22,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,12 +73,15 @@ import io.github.sceneview.rememberMaterialLoader
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
+import io.github.sceneview.rememberScene
 import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
 
 class ArViewerActivity : ComponentActivity() {
     private lateinit var modelUrl: String
     private var savedModelInstance: ModelInstance? = null
+    private var materialList = mutableListOf<String>()
+    private lateinit var colorList: List<Color>
 
     //        store glb file material list name
     var materialList = mutableListOf<String>()
@@ -80,21 +93,29 @@ class ArViewerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
+        actionBar?.hide()
+        try {
+            modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
+            val colors = intent.getStringArrayListExtra("MODEL_COLORS")
+            colorList = colors?.mapNotNull { parseColor(it) } ?: emptyList()
 
-        colorList = mutableListOf(
-            "#FF0000", // Red
-            "#00FF00", // Green
-            "#0000FF", // Blue
-            "#FFFF00", // Yellow
-            "#FFC0CB", // Pink
-            "#A52A2A", // Brown
-            "#FFFFFF", // White
-            "#FFA500"  // Orange
-        )
+            setContent {
+                ArViewerScreen()
+            }
+        } catch (e: Exception) {
+            Log.e("ArViewerActivity", "Error in onCreate: ${e.message}", e)
+            Toast.makeText(this, "Error initializing AR viewer: ${e.message}", Toast.LENGTH_LONG)
+                .show()
+            finish()
+        }
+    }
 
-        setContent {
-            ArViewerScreen()
+    private fun parseColor(colorString: String): Color? {
+        return try {
+            Color(android.graphics.Color.parseColor(colorString))
+        } catch (e: IllegalArgumentException) {
+            Log.w("ArViewerActivity", "Invalid color: $colorString")
+            null
         }
     }
 
@@ -107,16 +128,15 @@ class ArViewerActivity : ComponentActivity() {
         val childNodes = rememberNodes()
         val view = rememberView(engine)
         val collisionSystem = rememberCollisionSystem(view)
+        rememberScene(engine)
 
-        var planeRenderer by remember { mutableStateOf(true) }
         var trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
         var frame by remember { mutableStateOf<Frame?>(null) }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
+        val errorMessage by remember { mutableStateOf<String?>(null) }
         var isLoading by remember { mutableStateOf(false) }
 
-
-
         Box(modifier = Modifier.fillMaxSize()) {
+
             ARScene(
                 modifier = Modifier.fillMaxSize(),
                 childNodes = childNodes,
@@ -160,7 +180,6 @@ class ArViewerActivity : ComponentActivity() {
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-
                 InfoText(
                     trackingFailureReason = trackingFailureReason,
                     childNodesEmpty = childNodes.isEmpty(),
@@ -170,80 +189,166 @@ class ArViewerActivity : ComponentActivity() {
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    DropdownMenu("Materials", materialList)
-                    DropdownMenu("Colors", colorList)
+                BottomControls(colorList) {
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = {
-                            resetColors()
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        shape = RoundedCornerShape(32.dp)
-                    ) {
-                        Text("Reset")
-                    }
-                    Button(
-                        onClick = {
-                            imagePicker()
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        shape = RoundedCornerShape(32.dp)
-                    ) {
-                        Text("Image")
-                    }
-                }
-
             }
 
-
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .align(Alignment.Center),
+                    color = Color.White
+                )
+            }
         }
     }
 
     @Composable
-    fun DropdownMenu(label: String, itemsList: List<String>) {
-        var expanded by remember { mutableStateOf(false) }
-        var selectedIndex by remember { mutableStateOf(0) }
-        val items = itemsList
+    fun BottomControls(colors: List<Color>, onColorSelected: (Color) -> Unit) {
+        var isListVisible by remember { mutableStateOf(false) }
 
-        Box {
-            Button(
-                onClick = { expanded = true },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                shape = RoundedCornerShape(32.dp)
-            ) {
-                Text(label)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
+        ) {
+            if (isListVisible) {
+                VerticalList(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
             }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                items.forEachIndexed { index, item ->
-                    DropdownMenuItem(onClick = {
-                        if (label == "Materials") selectedColorIndex = index
-                        else if (label == "Colors") {
-                            setColor(item)
-                        }
-                        selectedIndex = index
-                        expanded = false
-                    }) {
-                        Text(text = item)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Button(
+                    onClick = { /* Reset functionality */ },
+                    modifier = Modifier.size(48.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Refresh,
+                        contentDescription = "Reset",
+                        tint = Color.Black
+                    )
+                }
+
+                LazyRow(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(colors) { color ->
+                        ColorButton(color = color, onColorSelected = onColorSelected)
+                    }
+                }
+
+                Column {
+                    Button(
+                        onClick = { isListVisible = !isListVisible },
+                        modifier = Modifier.size(48.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = "More Options",
+                            tint = Color.Black
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = { /* Image functionality */ },
+                        modifier = Modifier.size(48.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Face,
+                            contentDescription = "Image",
+                            tint = Color.Black
+                        )
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    fun ColorButton(color: Color, onColorSelected: (Color) -> Unit) {
+        Button(
+            onClick = { onColorSelected(color) },
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(backgroundColor = color)
+        ) {}
+    }
+
+    @Composable
+    fun VerticalList(modifier: Modifier = Modifier) {
+        val listItems = listOf("Option 1", "Option 2", "Option 3", "Option 4")
+
+        LazyColumn(
+            modifier = modifier
+                .background(Color.White.copy(alpha = 0.8f))
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(listItems) { item ->
+                Text(
+                    text = item,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    color = Color.Black
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun InfoText(
+        trackingFailureReason: TrackingFailureReason?,
+        childNodesEmpty: Boolean,
+        errorMessage: String?,
+        isLoading: Boolean,
+    ) {
+        val context = LocalContext.current
+        val text = when {
+            errorMessage != null -> errorMessage
+            isLoading -> stringResource(R.string.loading_model)
+            trackingFailureReason != null -> trackingFailureReason.getDescription(context)
+            childNodesEmpty -> stringResource(R.string.tap_anywhere_to_add_model)
+            else -> stringResource(R.string.model_placed)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 32.dp),
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp,
+                color = Color.White,
+                text = text
+            )
         }
     }
 
@@ -267,6 +372,7 @@ class ArViewerActivity : ComponentActivity() {
                             createAnchorNode(engine, modelLoader, materialLoader, anchor)
                         childNodes.add(anchorNode)
                     } catch (e: Exception) {
+                        // Handle exception
                     } finally {
                         setLoading(false)
                     }

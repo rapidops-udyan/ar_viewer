@@ -24,12 +24,12 @@ class ArViewerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityA
         when (call.method) {
             "loadModel" -> {
                 val modelUrl = call.argument<String>("modelUrl")
-                val colors = call.argument<List<String>>("colors")
+                val colors = ArrayList(call.argument<List<String>>("colors"))
                 context?.let {
                     val intent = Intent(it, ArViewerActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        putExtra("MODEL_URL", modelUrl)
-                        putExtra("MODEL_COLORS", arrayListOf(colors))
+                        putExtra("MODEL_URL", modelUrl.toString())
+                        putStringArrayListExtra("MODEL_COLORS", colors  )
                     }
                     it.startActivity(intent)
                     result.success(null)
