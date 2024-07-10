@@ -4,13 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
-import android.util.Log
 import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -78,15 +78,14 @@ import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
 
 class ArViewerActivity : ComponentActivity() {
+
     private lateinit var modelUrl: String
     private var savedModelInstance: ModelInstance? = null
     private var materialList = mutableListOf<String>()
     private lateinit var colorList: List<Color>
 
+
     //        store glb file material list name
-    var materialList = mutableListOf<String>()
-    var colorList = mutableListOf<String>()
-    var colors = mutableListOf<List<String>>()
     var colorMap: MutableList<MaterialInstance> = mutableListOf()
     var defaultMaterial: MutableList<MaterialInstance> = mutableListOf()
     var selectedColorIndex = 0
@@ -161,7 +160,6 @@ class ArViewerActivity : ComponentActivity() {
                     }
                 },
                 cameraNode = cameraNode,
-                planeRenderer = planeRenderer,
                 onTrackingFailureChanged = { trackingFailureReason = it },
                 onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
                 onGestureListener = rememberOnGestureListener(onSingleTapConfirmed = { motionEvent, _ ->
@@ -189,16 +187,14 @@ class ArViewerActivity : ComponentActivity() {
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                BottomControls(colorList) {
-                }
+                BottomControls(colorList) {}
             }
 
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier
                         .size(50.dp)
-                        .align(Alignment.Center),
-                    color = Color.White
+                        .align(Alignment.Center), color = Color.White
                 )
             }
         }
@@ -220,14 +216,17 @@ class ArViewerActivity : ComponentActivity() {
                         .padding(bottom = 8.dp)
                 )
             }
-
+//show Bottom Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
             ) {
+//                Reset Button for set Material to default
                 Button(
-                    onClick = { /* Reset functionality */ },
+                    onClick = { /* Reset functionality */
+                        resetColors()
+                    },
                     modifier = Modifier.size(48.dp),
                     contentPadding = PaddingValues(0.dp),
                     shape = CircleShape,
@@ -239,7 +238,7 @@ class ArViewerActivity : ComponentActivity() {
                         tint = Color.Black
                     )
                 }
-
+//                Show Color List for change Material Color
                 LazyRow(
                     modifier = Modifier
                         .weight(1f)
@@ -270,7 +269,10 @@ class ArViewerActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
-                        onClick = { /* Image functionality */ },
+                        onClick = {
+                            /* Image functionality */
+                            imagePicker()
+                        },
                         modifier = Modifier.size(48.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = CircleShape,
@@ -290,7 +292,10 @@ class ArViewerActivity : ComponentActivity() {
     @Composable
     fun ColorButton(color: Color, onColorSelected: (Color) -> Unit) {
         Button(
-            onClick = { onColorSelected(color) },
+            onClick = {
+                onColorSelected(color)
+                setColor(color)
+            },
             modifier = Modifier.size(32.dp),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(backgroundColor = color)
@@ -299,7 +304,7 @@ class ArViewerActivity : ComponentActivity() {
 
     @Composable
     fun VerticalList(modifier: Modifier = Modifier) {
-        val listItems = listOf("Option 1", "Option 2", "Option 3", "Option 4")
+        val listItems = materialList
 
         LazyColumn(
             modifier = modifier
@@ -307,14 +312,17 @@ class ArViewerActivity : ComponentActivity() {
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(listItems) { item ->
-                Text(
-                    text = item,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp, horizontal = 16.dp),
-                    color = Color.Black
-                )
+            itemsIndexed(listItems) { index, item ->
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        selectedColorIndex = index
+                    }
+                    .padding(vertical = 8.dp, horizontal = 16.dp)) {
+                    Text(
+                        text = item, color = Color.Black
+                    )
+                }
             }
         }
     }
@@ -418,24 +426,19 @@ class ArViewerActivity : ComponentActivity() {
         return anchorNode
     }
 
-    //    set HexColor to selected material
-    private fun setColor(hexColor: String) {
-
+    //    set Color to selected material
+    private fun setColor(color: Color) {
         // Extract the red, green, and blue components
-        val rHex = hexColor.substring(1, 3)
-        val gHex = hexColor.substring(3, 5)
-        val bHex = hexColor.substring(5, 7)
-
-        // Convert hex components to decimal
-        val r = (rHex.toInt(16) / 255.0f)
-        val g = (gHex.toInt(16) / 255.0f)
-        val b = (bHex.toInt(16) / 255.0f)
+        val r = color.red
+        val g = color.green
+        val b = color.blue
 
         // Set the color using the RGB values
         colorMap[selectedColorIndex] = colorMap[selectedColorIndex].apply {
             setParameter("baseColorFactor", r, g, b, 1.0f)
         }
     }
+
 
     //    reset all colors to default
     private fun resetColors() {
@@ -451,48 +454,5 @@ class ArViewerActivity : ComponentActivity() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         startActivity(intent)
         Log.d("ImagePicker", "Image Picker Called-> ${intent}")
-    }
-}
-
-
-//  Show Instruction Text on Screen
-private @Composable
-fun InfoText(
-    trackingFailureReason: TrackingFailureReason?,
-    childNodesEmpty: Boolean,
-    errorMessage: String?,
-    isLoading: Boolean,
-) {
-    val context = LocalContext.current
-    val text = when {
-        errorMessage != null -> errorMessage
-        isLoading -> stringResource(R.string.loading_model)
-        trackingFailureReason != null -> trackingFailureReason.getDescription(context)
-        childNodesEmpty -> stringResource(R.string.tap_anywhere_to_add_model)
-        else -> stringResource(R.string.model_placed)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp)
-    ) {
-        Text(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 32.dp),
-            textAlign = TextAlign.Center,
-            fontSize = 18.sp,
-            color = Color.White,
-            text = text
-        )
-
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(50.dp)
-                    .align(Alignment.Center), color = Color.White
-            )
-        }
     }
 }
