@@ -213,7 +213,11 @@ class ArViewerActivity : ComponentActivity() {
                 VerticalList(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 8.dp),
+                    onItemClick = {
+                        selectedColorIndex = it
+                        isListVisible = false
+                    }
                 )
             }
 //show Bottom Row
@@ -303,7 +307,7 @@ class ArViewerActivity : ComponentActivity() {
     }
 
     @Composable
-    fun VerticalList(modifier: Modifier = Modifier) {
+    fun VerticalList(modifier: Modifier = Modifier, onItemClick: (Int) -> Unit) {
         val listItems = materialList
 
         LazyColumn(
@@ -316,7 +320,7 @@ class ArViewerActivity : ComponentActivity() {
                 Box(modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        selectedColorIndex = index
+                        onItemClick(index)
                     }
                     .padding(vertical = 8.dp, horizontal = 16.dp)) {
                     Text(
