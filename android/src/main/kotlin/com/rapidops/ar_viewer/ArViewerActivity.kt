@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.google.android.filament.Engine
+import com.google.android.filament.MaterialInstance
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
@@ -67,13 +68,24 @@ class ArViewerActivity : ComponentActivity() {
     //        store glb file material list name
     var materialList = mutableListOf<String>()
     var colorList = mutableListOf<String>()
-
+    var colors = mutableListOf<List<String>>()
+    var colorMap: MutableList<MaterialInstance> = mutableListOf()
+    var selectedColorIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
 
-        colorList = mutableListOf("Red", "Green", "Blue", "Yellow")
+        colorList = mutableListOf(
+            "#FF0000", // Red
+            "#00FF00", // Green
+            "#0000FF", // Blue
+            "#FFFF00", // Yellow
+            "#FFC0CB", // Pink
+            "#A52A2A", // Brown
+            "#FFFFFF", // White
+            "#FFA500"  // Orange
+        )
 
         setContent {
             ArViewerScreen()
@@ -162,7 +174,9 @@ class ArViewerActivity : ComponentActivity() {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(
-                        onClick = {},
+                        onClick = {
+                            colorMap.clear()
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
@@ -172,7 +186,8 @@ class ArViewerActivity : ComponentActivity() {
                         Text("Reset")
                     }
                     Button(
-                        onClick = {},
+                        onClick = {
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
@@ -206,6 +221,11 @@ class ArViewerActivity : ComponentActivity() {
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 items.forEachIndexed { index, item ->
                     DropdownMenuItem(onClick = {
+                        if (label == "Materials")
+                            selectedColorIndex = index
+                        else if (label == "Colors") {
+                            setColor(item)
+                        }
                         selectedIndex = index
                         expanded = false
                     }) {
@@ -243,6 +263,7 @@ class ArViewerActivity : ComponentActivity() {
             }
     }
 
+    //    Create Anchor Node and Load Glb File
     private suspend fun createAnchorNode(
         engine: Engine,
         modelLoader: ModelLoader,
@@ -255,11 +276,15 @@ class ArViewerActivity : ComponentActivity() {
         } ?: modelLoader.loadModelInstance(modelUrl)?.also {
             savedModelInstance = it
         }?.let { modelInstance ->
-            modelInstance.materialInstances.forEach { materialInstance ->
+            modelInstance.materialInstances.forEachIndexed { index, materialInstance ->
 //                add to materialList
                 materialList.add(materialInstance.name)
+                if (index < colorMap.size) {
+                    colorMap[index] = materialInstance
+                } else {
+                    colorMap.add(materialInstance)
+                }
 
-//                materialInstance.setParameter("baseColorFactor", 1f, 1f, 1f, 1f)
             }
             ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
         } ?: throw IllegalStateException("Failed to load model")
@@ -273,9 +298,30 @@ class ArViewerActivity : ComponentActivity() {
         anchorNode.addChildNode(modelNode)
         return anchorNode
     }
+
+    //    set HexColor to selected material
+    private fun setColor(hexColor: String) {
+
+        // Extract the red, green, and blue components
+        val rHex = hexColor.substring(1, 3)
+        val gHex = hexColor.substring(3, 5)
+        val bHex = hexColor.substring(5, 7)
+
+        // Convert hex components to decimal
+        val r = (rHex.toInt(16) / 255.0f)
+        val g = (gHex.toInt(16) / 255.0f)
+        val b = (bHex.toInt(16) / 255.0f)
+
+        // Set the color using the RGB values
+        colorMap[selectedColorIndex] = colorMap[selectedColorIndex].apply {
+            setParameter("baseColorFactor", r, g, b, 1.0f)
+        }
+    }
+
 }
 
-@Composable
+
+private @Composable
 fun InfoText(
     trackingFailureReason: TrackingFailureReason?,
     childNodesEmpty: Boolean,
