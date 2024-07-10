@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
@@ -135,6 +137,16 @@ class ArViewerActivity : ComponentActivity() {
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
+
+                InfoText(
+                    trackingFailureReason = trackingFailureReason,
+                    childNodesEmpty = childNodes.isEmpty(),
+                    errorMessage = errorMessage,
+                    isLoading = isLoading
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -143,25 +155,29 @@ class ArViewerActivity : ComponentActivity() {
                     DropdownMenu("Colors", colorList)
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(
-                        onClick = { /* To be implemented */ },
+                        onClick = {},
                         modifier = Modifier
                             .weight(1f)
-                            .padding(end = 8.dp)
+                            .padding(end = 8.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                        shape = RoundedCornerShape(32.dp)
                     ) {
                         Text("Reset")
                     }
                     Button(
-                        onClick = { /* To be implemented */ },
+                        onClick = {},
                         modifier = Modifier
                             .weight(1f)
-                            .padding(start = 8.dp)
+                            .padding(end = 8.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                        shape = RoundedCornerShape(32.dp)
                     ) {
                         Text("Image")
                     }
@@ -169,12 +185,7 @@ class ArViewerActivity : ComponentActivity() {
 
             }
 
-            InfoText(
-                trackingFailureReason = trackingFailureReason,
-                childNodesEmpty = childNodes.isEmpty(),
-                errorMessage = errorMessage,
-                isLoading = isLoading
-            )
+
         }
     }
 
@@ -185,7 +196,11 @@ class ArViewerActivity : ComponentActivity() {
         val items = itemsList
 
         Box {
-            Button(onClick = { expanded = true }) {
+            Button(
+                onClick = { expanded = true },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                shape = RoundedCornerShape(32.dp)
+            ) {
                 Text(label)
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -278,13 +293,12 @@ fun InfoText(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 16.dp)
-            .systemBarsPadding()
+            .fillMaxWidth()
+            .padding(top = 16.dp)
     ) {
         Text(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
                 .padding(horizontal = 32.dp),
             textAlign = TextAlign.Center,
             fontSize = 18.sp,

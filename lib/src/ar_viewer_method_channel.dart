@@ -10,9 +10,13 @@ class MethodChannelArViewer extends ArViewerPlatform {
   final methodChannel = const MethodChannel('ar_viewer');
 
   @override
-  Future<String?> loadModel(String modelUrl) async {
+  Future<String?> loadModel({
+    required String modelUrl,
+    required List<String> colors,
+  }) async {
     final version = await methodChannel.invokeMethod<String>('loadModel', {
       "modelUrl": modelUrl,
+      "colors": colors,
     });
     return version;
   }

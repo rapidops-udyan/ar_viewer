@@ -23,7 +23,10 @@ abstract class ArViewerPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> loadModel(String modelUrl) {
+  Future<String?> loadModel({
+    required String modelUrl,
+    required List<String> colors,
+  }) {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 }

@@ -8,7 +8,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.Result
 
 class ArViewerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
     private lateinit var channel: MethodChannel
@@ -24,10 +23,12 @@ class ArViewerPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityA
         when (call.method) {
             "loadModel" -> {
                 val modelUrl = call.argument<String>("modelUrl")
+                val colors = call.argument<List<Int>>("colors")
                 context?.let {
                     val intent = Intent(it, ArViewerActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
                         putExtra("MODEL_URL", modelUrl)
+                        putExtra("MODEL_COLORS", colors)
                     }
                     it.startActivity(intent)
                     result.success(null)
