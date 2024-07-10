@@ -1,8 +1,12 @@
 package com.rapidops.ar_viewer
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.MediaStore
+import android.util.Log
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +51,7 @@ import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
+import io.github.sceneview.ar.scene.PlaneRenderer
 import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.math.Position
@@ -70,6 +75,7 @@ class ArViewerActivity : ComponentActivity() {
     var colorList = mutableListOf<String>()
     var colors = mutableListOf<List<String>>()
     var colorMap: MutableList<MaterialInstance> = mutableListOf()
+    var defaultMaterial: MutableList<MaterialInstance> = mutableListOf()
     var selectedColorIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +122,11 @@ class ArViewerActivity : ComponentActivity() {
                 childNodes = childNodes,
                 engine = engine,
                 view = view,
+//                for render all plane
+                onViewCreated = {
+                    this.planeRenderer.planeRendererMode =
+                        PlaneRenderer.PlaneRendererMode.RENDER_ALL
+                },
                 modelLoader = modelLoader,
                 collisionSystem = collisionSystem,
                 sessionConfiguration = { session, config ->
@@ -175,7 +186,7 @@ class ArViewerActivity : ComponentActivity() {
                 ) {
                     Button(
                         onClick = {
-                            colorMap.clear()
+                            resetColors()
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -187,6 +198,7 @@ class ArViewerActivity : ComponentActivity() {
                     }
                     Button(
                         onClick = {
+                            imagePicker()
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -221,8 +233,7 @@ class ArViewerActivity : ComponentActivity() {
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 items.forEachIndexed { index, item ->
                     DropdownMenuItem(onClick = {
-                        if (label == "Materials")
-                            selectedColorIndex = index
+                        if (label == "Materials") selectedColorIndex = index
                         else if (label == "Colors") {
                             setColor(item)
                         }
@@ -281,8 +292,10 @@ class ArViewerActivity : ComponentActivity() {
                 materialList.add(materialInstance.name)
                 if (index < colorMap.size) {
                     colorMap[index] = materialInstance
+                    defaultMaterial[index] = materialInstance
                 } else {
                     colorMap.add(materialInstance)
+                    defaultMaterial.add(materialInstance)
                 }
 
             }
@@ -318,9 +331,25 @@ class ArViewerActivity : ComponentActivity() {
         }
     }
 
+    //    reset all colors to default
+    private fun resetColors() {
+        colorMap.forEachIndexed { index, _ ->
+            val defaultInstance = defaultMaterial.getOrNull(index)
+            if (defaultInstance != null) {
+                colorMap[index] = defaultInstance
+            }
+        }
+    }
+
+    private fun imagePicker() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivity(intent)
+        Log.d("ImagePicker", "Image Picker Called-> ${intent}")
+    }
 }
 
 
+//  Show Instruction Text on Screen
 private @Composable
 fun InfoText(
     trackingFailureReason: TrackingFailureReason?,
