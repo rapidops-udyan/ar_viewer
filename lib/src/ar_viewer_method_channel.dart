@@ -14,10 +14,10 @@ class MethodChannelArViewer extends ArViewerPlatform {
     required String modelUrl,
     required List<String> colors,
   }) async {
-    final version = await methodChannel.invokeMethod<String>('loadModel', {
+    final result = await methodChannel.invokeMethod<String>('loadModel', {
       "modelUrl": modelUrl,
       "colors": colors,
     });
-    return version;
+    return result;
   }
 }
