@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -84,11 +86,9 @@ class ArViewerActivity : ComponentActivity() {
     private var materialList = mutableListOf<String>()
     private lateinit var colorList: List<Color>
 
-
-    //        store glb file material list name
     var colorMap: MutableList<MaterialInstance> = mutableListOf()
     var defaultMaterial: MutableList<MaterialInstance> = mutableListOf()
-    var selectedColorIndex = 0
+    var selectedColorIndices = mutableStateListOf<Int>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -135,13 +135,11 @@ class ArViewerActivity : ComponentActivity() {
         var isLoading by remember { mutableStateOf(false) }
 
         Box(modifier = Modifier.fillMaxSize()) {
-
             ARScene(
                 modifier = Modifier.fillMaxSize(),
                 childNodes = childNodes,
                 engine = engine,
                 view = view,
-//                for render all plane
                 onViewCreated = {
                     this.planeRenderer.planeRendererMode =
                         PlaneRenderer.PlaneRendererMode.RENDER_ALL
@@ -187,7 +185,7 @@ class ArViewerActivity : ComponentActivity() {
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                BottomControls(colorList) {}
+                BottomControls(colorList)
             }
 
             if (isLoading) {
@@ -201,8 +199,9 @@ class ArViewerActivity : ComponentActivity() {
     }
 
     @Composable
-    fun BottomControls(colors: List<Color>, onColorSelected: (Color) -> Unit) {
+    fun BottomControls(colors: List<Color>) {
         var isListVisible by remember { mutableStateOf(false) }
+        var selectedMaterialIndex by remember { mutableStateOf(0) }
 
         Column(
             modifier = Modifier
@@ -215,22 +214,19 @@ class ArViewerActivity : ComponentActivity() {
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
                     onItemClick = {
-                        selectedColorIndex = it
+                        selectedMaterialIndex = it
                         isListVisible = false
                     }
                 )
             }
-//show Bottom Row
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
             ) {
-//                Reset Button for set Material to default
                 Button(
-                    onClick = { /* Reset functionality */
-                        resetColors()
-                    },
+                    onClick = { resetColors() },
                     modifier = Modifier.size(48.dp),
                     contentPadding = PaddingValues(0.dp),
                     shape = CircleShape,
@@ -242,7 +238,7 @@ class ArViewerActivity : ComponentActivity() {
                         tint = Color.Black
                     )
                 }
-//                Show Color List for change Material Color
+
                 LazyRow(
                     modifier = Modifier
                         .weight(1f)
@@ -251,7 +247,21 @@ class ArViewerActivity : ComponentActivity() {
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
                     items(colors) { color ->
-                        ColorButton(color = color, onColorSelected = onColorSelected)
+                        ColorButton(
+                            color = color,
+                            isSelected = selectedColorIndices.getOrNull(selectedMaterialIndex) == colors.indexOf(
+                                color
+                            ),
+                            onColorSelected = { selectedColor ->
+                                setColor(selectedColor, selectedMaterialIndex)
+                                if (selectedMaterialIndex >= selectedColorIndices.size) {
+                                    selectedColorIndices.add(colors.indexOf(selectedColor))
+                                } else {
+                                    selectedColorIndices[selectedMaterialIndex] =
+                                        colors.indexOf(selectedColor)
+                                }
+                            }
+                        )
                     }
                 }
 
@@ -261,7 +271,7 @@ class ArViewerActivity : ComponentActivity() {
                         modifier = Modifier.size(48.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Edit,
@@ -273,10 +283,7 @@ class ArViewerActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
-                        onClick = {
-                            /* Image functionality */
-                            imagePicker()
-                        },
+                        onClick = { imagePicker() },
                         modifier = Modifier.size(48.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = CircleShape,
@@ -294,34 +301,38 @@ class ArViewerActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ColorButton(color: Color, onColorSelected: (Color) -> Unit) {
-        Button(
-            onClick = {
-                onColorSelected(color)
-                setColor(color)
-            },
-            modifier = Modifier.size(32.dp),
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(backgroundColor = color)
-        ) {}
+    fun ColorButton(color: Color, isSelected: Boolean, onColorSelected: (Color) -> Unit) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .padding(4.dp)
+                .border(
+                    width = if (isSelected) 2.dp else 0.dp,
+                    color = if (isSelected) Color.White else Color.Transparent,
+                    shape = CircleShape
+                )
+        ) {
+            Button(
+                onClick = { onColorSelected(color) },
+                modifier = Modifier.fillMaxSize(),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(backgroundColor = color),
+            ) {}
+        }
     }
 
     @Composable
     fun VerticalList(modifier: Modifier = Modifier, onItemClick: (Int) -> Unit) {
-        val listItems = materialList
-
         LazyColumn(
             modifier = modifier
                 .background(Color.White.copy(alpha = 0.8f))
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            itemsIndexed(listItems) { index, item ->
+            itemsIndexed(materialList) { index, item ->
                 Box(modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        onItemClick(index)
-                    }
+                    .clickable { onItemClick(index) }
                     .padding(vertical = 8.dp, horizontal = 16.dp)) {
                     Text(
                         text = item, color = Color.Black
@@ -392,7 +403,6 @@ class ArViewerActivity : ComponentActivity() {
             }
     }
 
-    //    Create Anchor Node and Load Glb File
     private suspend fun createAnchorNode(
         engine: Engine,
         modelLoader: ModelLoader,
@@ -406,7 +416,6 @@ class ArViewerActivity : ComponentActivity() {
             savedModelInstance = it
         }?.let { modelInstance ->
             modelInstance.materialInstances.forEachIndexed { index, materialInstance ->
-//                add to materialList
                 materialList.add(materialInstance.name)
                 if (index < colorMap.size) {
                     colorMap[index] = materialInstance
@@ -415,7 +424,6 @@ class ArViewerActivity : ComponentActivity() {
                     colorMap.add(materialInstance)
                     defaultMaterial.add(materialInstance)
                 }
-
             }
             ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
         } ?: throw IllegalStateException("Failed to load model")
@@ -430,21 +438,16 @@ class ArViewerActivity : ComponentActivity() {
         return anchorNode
     }
 
-    //    set Color to selected material
-    private fun setColor(color: Color) {
-        // Extract the red, green, and blue components
+    private fun setColor(color: Color, materialIndex: Int) {
         val r = color.red
         val g = color.green
         val b = color.blue
 
-        // Set the color using the RGB values
-        colorMap[selectedColorIndex] = colorMap[selectedColorIndex].apply {
+        colorMap.getOrNull(materialIndex)?.apply {
             setParameter("baseColorFactor", r, g, b, 1.0f)
         }
     }
 
-
-    //    reset all colors to default
     private fun resetColors() {
         colorMap.forEachIndexed { index, _ ->
             val defaultInstance = defaultMaterial.getOrNull(index)
@@ -452,6 +455,7 @@ class ArViewerActivity : ComponentActivity() {
                 colorMap[index] = defaultInstance
             }
         }
+        selectedColorIndices.clear()
     }
 
     private fun imagePicker() {
