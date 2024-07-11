@@ -72,6 +72,7 @@ import io.github.sceneview.ar.scene.PlaneRenderer
 import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.material.setBaseColorMap
+import io.github.sceneview.material.setParameter
 import io.github.sceneview.math.Position
 import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.node.ModelNode
@@ -466,6 +467,11 @@ class ArViewerActivity : ComponentActivity() {
 
     private fun resetColors() {
         selectedColorIndices.clear()
+        selectedMaterialIndex=0
+        savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
+            colorMap[index] = materialInstance
+            materialInstance.setParameter("baseColorFactor",1.0f, 1.0f, 1.0f, 1.0f)
+        }
     }
 
     private fun imagePicker() {
