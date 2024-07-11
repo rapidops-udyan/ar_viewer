@@ -63,7 +63,6 @@ import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.TrackingFailureReason
 import io.github.sceneview.ar.ARScene
-import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.arcore.createAnchorOrNull
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
@@ -87,7 +86,6 @@ import io.github.sceneview.rememberView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -100,14 +98,10 @@ class ArViewerActivity : ComponentActivity() {
 
     var colorMap: MutableList<MaterialInstance> =
         mutableListOf()  // store material instances and change color
-    var defaultMaterial: MutableList<MaterialInstance> =
-        mutableListOf() // store default material instances
     var selectedColorIndices = mutableStateListOf<Int>()  // store selected color indices
     var imgUri: Uri? = null     // store image uri if image is selected
     var selectedMaterialIndex = 0 // store selected material index
     var engineCopy: Engine? = null
-    lateinit var sceneView: ARSceneView
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -149,7 +143,6 @@ class ArViewerActivity : ComponentActivity() {
         val view = rememberView(engine)
         val collisionSystem = rememberCollisionSystem(view)
         rememberScene(engine)
-//        view.also { sceneView = it }
         engineCopy = engine
 
         var trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
@@ -439,10 +432,8 @@ class ArViewerActivity : ComponentActivity() {
                 materialList.add(materialInstance.name)
                 if (index < colorMap.size) {
                     colorMap[index] = materialInstance
-                    defaultMaterial[index] = materialInstance
                 } else {
                     colorMap.add(materialInstance)
-                    defaultMaterial.add(materialInstance)
                 }
             }
             ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
@@ -463,8 +454,6 @@ class ArViewerActivity : ComponentActivity() {
         val g = color.green
         val b = color.blue
 
-
-
         colorMap.getOrNull(materialIndex)?.apply {
 
             val texture = createTextureFromUriAndColor()
@@ -476,12 +465,6 @@ class ArViewerActivity : ComponentActivity() {
     }
 
     private fun resetColors() {
-        colorMap.forEachIndexed { index, _ ->
-            val defaultInstance = defaultMaterial.getOrNull(index)
-            if (defaultInstance != null) {
-                colorMap[index] = defaultInstance
-            }
-        }
         selectedColorIndices.clear()
     }
 
@@ -495,15 +478,10 @@ class ArViewerActivity : ComponentActivity() {
             if (it.resultCode == Activity.RESULT_OK) {
                 val data = it.data
                 imgUri = data?.data
-                Log.d("ImageURI", "IMAGE URI IS ${imgUri}")
                 imgUri?.let { uri ->
                     lifecycleScope.launch {
                         try {
-                            Log.d("IMAGEURI", "step2 -$uri")
-
                             val texture = withContext(Dispatchers.Default) {
-                                Log.d("IMAGEURI", "step3 -create")
-
                                 createTextureFromUriAndColor()
                             }
                             withContext(Dispatchers.Main) {
@@ -522,48 +500,34 @@ class ArViewerActivity : ComponentActivity() {
             }
         }
 
-    fun createTextureFromUriAndColor(): Texture? {
+    private fun createTextureFromUriAndColor(): Texture? {
         val buffer: ByteBuffer
         val texture: Texture
-        Log.d("IMAGEURI", "Step 1 - createTextureFromUriAndColor called with URI: $imgUri")
-
         return try {
             val uri = imgUri ?: return null
-            Log.d("IMAGEURI", "Step 2 - Open InputStream")
             val inputStream = contentResolver.openInputStream(uri)
             if (inputStream == null) {
                 Log.e("IMAGEURI", "Error: InputStream is null for URI: $uri")
                 return null
             }
 
-            Log.d("IMAGEURI", "Step 3 - Decode Bitmap from InputStream")
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream.close()
 
             if (bitmap == null) {
                 Log.e(
-                    "IMAGEURI",
-                    "Error: Bitmap is null after decoding InputStream for URI: $uri"
+                    "IMAGEURI", "Error: Bitmap is null after decoding InputStream for URI: $uri"
                 )
                 return null
             }
 
-            Log.d("IMAGEURI", "Step 4 - Bitmap decoded: ${bitmap.width}x${bitmap.height}")
             val width = bitmap.width
             val height = bitmap.height
 
-            Log.d("IMAGEURI", "Step 5 - Allocate buffer")
-            buffer =
-                ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
+            buffer = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
             bitmap.copyPixelsToBuffer(buffer)
             buffer.flip()
 
-            Log.d("IMAGEURI", "Step 6 - Create ARSceneView")
-
-            // error is here
-
-//            here code is break
-            Log.d("IMAGEURI", "Step 7 - Build Texture")
             texture = Texture.Builder().width(width).height(height).levels(1)
                 .sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.RGBA8)
                 .build(engineCopy!!)
@@ -571,18 +535,14 @@ class ArViewerActivity : ComponentActivity() {
             val pixelBufferDescriptor = Texture.PixelBufferDescriptor(
                 buffer, Texture.Format.RGBA, Texture.Type.UBYTE
             )
-            Log.d("IMAGEURI", "Step 8 - Set Image on Texture")
             texture.setImage(engineCopy!!, 0, pixelBufferDescriptor)
 
-            Log.d("IMAGEURI", "Step 9 - Texture created successfully")
             texture
         } catch (e: Exception) {
-            Log.e("IMAGEURI EEE", "Error creating texture from URI", e)
             Toast.makeText(this, "Failed to create texture", Toast.LENGTH_SHORT).show()
             null
         }
     }
-
 
     private fun applyTextureToMaterial(texture: Texture) {
         if (selectedMaterialIndex in colorMap.indices) {
@@ -591,6 +551,4 @@ class ArViewerActivity : ComponentActivity() {
             Log.e("LogDB", "Invalid selectedMaterialIndex: $selectedMaterialIndex")
         }
     }
-
-
 }
