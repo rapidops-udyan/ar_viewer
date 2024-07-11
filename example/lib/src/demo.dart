@@ -11,7 +11,7 @@ class Demo extends StatefulWidget {
 class _DemoState extends State<Demo> {
   final _arViewerPlugin = ArViewer();
   final modelUrl =
-      "https://firebasestorage.googleapis.com/v0/b/flutter-ar-427312.appspot.com/o/sample_curtain.glb?alt=media&token=5f985ba1-2dca-477b-8c49-563abbf0830e";
+      "https://firebasestorage.googleapis.com/v0/b/fir-practice-7ec8c.appspot.com/o/Scene%20(3).glb?alt=media&token=81c068ea-f002-4d08-8157-f90a5e5845b4";
   final colors = [
     "#${Colors.red.value.toRadixString(16).padLeft(8, '0')}",
     "#${Colors.blue.value.toRadixString(16).padLeft(8, '0')}",

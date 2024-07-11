@@ -104,7 +104,7 @@ class ArViewerActivity : ComponentActivity() {
         } catch (e: Exception) {
             Log.e("ArViewerActivity", "Error in onCreate: ${e.message}", e)
             Toast.makeText(this, "Error initializing AR viewer: ${e.message}", Toast.LENGTH_LONG)
-                .show()
+                    .show()
             finish()
         }
     }
@@ -137,52 +137,51 @@ class ArViewerActivity : ComponentActivity() {
         Box(modifier = Modifier.fillMaxSize()) {
 
             ARScene(
-                modifier = Modifier.fillMaxSize(),
-                childNodes = childNodes,
-                engine = engine,
-                view = view,
-//                for render all plane
-                onViewCreated = {
-                    this.planeRenderer.planeRendererMode =
-                        PlaneRenderer.PlaneRendererMode.RENDER_ALL
-                },
-                modelLoader = modelLoader,
-                collisionSystem = collisionSystem,
-                sessionConfiguration = { session, config ->
-                    config.apply {
-                        depthMode = if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-                            Config.DepthMode.AUTOMATIC
-                        } else {
-                            Config.DepthMode.DISABLED
+                    modifier = Modifier.fillMaxSize(),
+                    childNodes = childNodes,
+                    engine = engine,
+                    view = view,
+                    modelLoader = modelLoader,
+                    collisionSystem = collisionSystem,
+                    sessionConfiguration = { session, config ->
+                        config.apply {
+                            depthMode = if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+                                Config.DepthMode.AUTOMATIC
+                            } else {
+                                Config.DepthMode.DISABLED
+                            }
+                            instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
+                            lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                         }
-                        instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
-                        lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                    },
+                    cameraNode = cameraNode,
+                    onViewCreated = {
+                        this.planeRenderer.planeRendererMode =
+                                PlaneRenderer.PlaneRendererMode.RENDER_ALL
                     }
-                },
-                cameraNode = cameraNode,
-                onTrackingFailureChanged = { trackingFailureReason = it },
-                onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
-                onGestureListener = rememberOnGestureListener(onSingleTapConfirmed = { motionEvent, _ ->
-                    if (!isLoading) {
-                        handleTap(
-                            motionEvent, frame, engine, modelLoader, materialLoader, childNodes
-                        ) {
-                            isLoading = it
+                            onTrackingFailureChanged = { trackingFailureReason = it },
+                    onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
+                    onGestureListener = rememberOnGestureListener(onSingleTapConfirmed = { motionEvent, _ ->
+                        if (!isLoading) {
+                            handleTap(
+                                    motionEvent, frame, engine, modelLoader, materialLoader, childNodes
+                            ) {
+                                isLoading = it
+                            }
                         }
-                    }
-                })
+                    })
             )
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                    modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
             ) {
                 InfoText(
-                    trackingFailureReason = trackingFailureReason,
-                    childNodesEmpty = childNodes.isEmpty(),
-                    errorMessage = errorMessage,
-                    isLoading = isLoading
+                        trackingFailureReason = trackingFailureReason,
+                        childNodesEmpty = childNodes.isEmpty(),
+                        errorMessage = errorMessage,
+                        isLoading = isLoading
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -192,9 +191,9 @@ class ArViewerActivity : ComponentActivity() {
 
             if (isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .align(Alignment.Center), color = Color.White
+                        modifier = Modifier
+                                .size(50.dp)
+                                .align(Alignment.Center), color = Color.White
                 )
             }
         }
@@ -205,50 +204,50 @@ class ArViewerActivity : ComponentActivity() {
         var isListVisible by remember { mutableStateOf(false) }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
         ) {
             if (isListVisible) {
                 VerticalList(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    onItemClick = {
-                        selectedColorIndex = it
-                        isListVisible = false
-                    }
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                        onItemClick = {
+                            selectedColorIndex = it
+                            isListVisible = false
+                        }
                 )
             }
 //show Bottom Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
             ) {
 //                Reset Button for set Material to default
                 Button(
-                    onClick = { /* Reset functionality */
-                        resetColors()
-                    },
-                    modifier = Modifier.size(48.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                        onClick = { /* Reset functionality */
+                            resetColors()
+                        },
+                        modifier = Modifier.size(48.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = "Reset",
-                        tint = Color.Black
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = "Reset",
+                            tint = Color.Black
                     )
                 }
 //                Show Color List for change Material Color
                 LazyRow(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 4.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
+                        modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
                     items(colors) { color ->
                         ColorButton(color = color, onColorSelected = onColorSelected)
@@ -257,35 +256,35 @@ class ArViewerActivity : ComponentActivity() {
 
                 Column {
                     Button(
-                        onClick = { isListVisible = !isListVisible },
-                        modifier = Modifier.size(48.dp),
-                        contentPadding = PaddingValues(0.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                            onClick = { isListVisible = !isListVisible },
+                            modifier = Modifier.size(48.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = "More Options",
-                            tint = Color.Black
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "More Options",
+                                tint = Color.Black
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
-                        onClick = {
-                            /* Image functionality */
-                            imagePicker()
-                        },
-                        modifier = Modifier.size(48.dp),
-                        contentPadding = PaddingValues(0.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
+                            onClick = {
+                                /* Image functionality */
+                                imagePicker()
+                            },
+                            modifier = Modifier.size(48.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Face,
-                            contentDescription = "Image",
-                            tint = Color.Black
+                                imageVector = Icons.Rounded.Face,
+                                contentDescription = "Image",
+                                tint = Color.Black
                         )
                     }
                 }
@@ -296,13 +295,13 @@ class ArViewerActivity : ComponentActivity() {
     @Composable
     fun ColorButton(color: Color, onColorSelected: (Color) -> Unit) {
         Button(
-            onClick = {
-                onColorSelected(color)
-                setColor(color)
-            },
-            modifier = Modifier.size(32.dp),
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(backgroundColor = color)
+                onClick = {
+                    onColorSelected(color)
+                    setColor(color)
+                },
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(backgroundColor = color)
         ) {}
     }
 
@@ -311,20 +310,20 @@ class ArViewerActivity : ComponentActivity() {
         val listItems = materialList
 
         LazyColumn(
-            modifier = modifier
-                .background(Color.White.copy(alpha = 0.8f))
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = modifier
+                        .background(Color.White.copy(alpha = 0.8f))
+                        .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(listItems) { index, item ->
                 Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        onItemClick(index)
-                    }
-                    .padding(vertical = 8.dp, horizontal = 16.dp)) {
+                        .fillMaxWidth()
+                        .clickable {
+                            onItemClick(index)
+                        }
+                        .padding(vertical = 8.dp, horizontal = 16.dp)) {
                     Text(
-                        text = item, color = Color.Black
+                            text = item, color = Color.Black
                     )
                 }
             }
@@ -333,10 +332,10 @@ class ArViewerActivity : ComponentActivity() {
 
     @Composable
     fun InfoText(
-        trackingFailureReason: TrackingFailureReason?,
-        childNodesEmpty: Boolean,
-        errorMessage: String?,
-        isLoading: Boolean,
+            trackingFailureReason: TrackingFailureReason?,
+            childNodesEmpty: Boolean,
+            errorMessage: String?,
+            isLoading: Boolean,
     ) {
         val context = LocalContext.current
         val text = when {
@@ -348,56 +347,56 @@ class ArViewerActivity : ComponentActivity() {
         }
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
         ) {
             Text(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 32.dp),
-                textAlign = TextAlign.Center,
-                fontSize = 18.sp,
-                color = Color.White,
-                text = text
+                    modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(horizontal = 32.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 18.sp,
+                    color = Color.White,
+                    text = text
             )
         }
     }
 
     private fun handleTap(
-        motionEvent: MotionEvent,
-        frame: Frame?,
-        engine: Engine,
-        modelLoader: ModelLoader,
-        materialLoader: MaterialLoader,
-        childNodes: MutableList<*>,
-        setLoading: (Boolean) -> Unit,
+            motionEvent: MotionEvent,
+            frame: Frame?,
+            engine: Engine,
+            modelLoader: ModelLoader,
+            materialLoader: MaterialLoader,
+            childNodes: MutableList<*>,
+            setLoading: (Boolean) -> Unit,
     ) {
         frame?.hitTest(motionEvent.x, motionEvent.y)
-            ?.firstOrNull { it.isValid(depthPoint = false, point = false) }?.createAnchorOrNull()
-            ?.let { anchor ->
-                setLoading(true)
-                lifecycleScope.launch {
-                    try {
-                        (childNodes as MutableList<AnchorNode>).clear()
-                        val anchorNode =
-                            createAnchorNode(engine, modelLoader, materialLoader, anchor)
-                        childNodes.add(anchorNode)
-                    } catch (e: Exception) {
-                        // Handle exception
-                    } finally {
-                        setLoading(false)
+                ?.firstOrNull { it.isValid(depthPoint = false, point = false) }?.createAnchorOrNull()
+                ?.let { anchor ->
+                    setLoading(true)
+                    lifecycleScope.launch {
+                        try {
+                            (childNodes as MutableList<AnchorNode>).clear()
+                            val anchorNode =
+                                    createAnchorNode(engine, modelLoader, materialLoader, anchor)
+                            childNodes.add(anchorNode)
+                        } catch (e: Exception) {
+                            // Handle exception
+                        } finally {
+                            setLoading(false)
+                        }
                     }
                 }
-            }
     }
 
     //    Create Anchor Node and Load Glb File
     private suspend fun createAnchorNode(
-        engine: Engine,
-        modelLoader: ModelLoader,
-        materialLoader: MaterialLoader,
-        anchor: Anchor,
+            engine: Engine,
+            modelLoader: ModelLoader,
+            materialLoader: MaterialLoader,
+            anchor: Anchor,
     ): AnchorNode {
         val anchorNode = AnchorNode(engine = engine, anchor = anchor)
         val modelNode = savedModelInstance?.let {
