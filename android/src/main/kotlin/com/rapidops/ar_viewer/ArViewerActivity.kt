@@ -552,9 +552,9 @@ class ArViewerActivity : ComponentActivity() {
         val b = color.blue
 
 
-        if (selectedMaterialIndex in colorMap.indices) {
+        if (materialIndex in colorMap.indices) {
             val texture = createTextureFromUriAndColor()
-            colorMap[selectedMaterialIndex] = colorMap[selectedMaterialIndex].apply {
+            colorMap[materialIndex] = colorMap[materialIndex].apply {
                 // Set the base color factor to the desired color
                 setParameter("baseColorFactor", r, g, b, 1.0f)
                 if (texture != null) {
