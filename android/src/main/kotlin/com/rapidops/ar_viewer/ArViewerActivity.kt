@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.android.filament.Engine
 import com.google.android.filament.MaterialInstance
 import com.google.android.filament.Texture
@@ -63,6 +69,7 @@ import com.google.ar.core.Frame
 import com.google.ar.core.TrackingFailureReason
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
+import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
@@ -105,7 +112,6 @@ class ArViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         actionBar?.hide()
-
         try {
             modelUrl = intent.getStringExtra("MODEL_URL") ?: ""
             val colors = intent.getStringArrayListExtra("MODEL_COLORS")
@@ -133,7 +139,6 @@ class ArViewerActivity : ComponentActivity() {
 
     @Composable
     fun ArViewerScreen() {
-
         val engine = rememberEngine()
         val modelLoader = rememberModelLoader(engine)
         val materialLoader = rememberMaterialLoader(engine)
@@ -148,6 +153,13 @@ class ArViewerActivity : ComponentActivity() {
         var frame by remember { mutableStateOf<Frame?>(null) }
         val errorMessage by remember { mutableStateOf<String?>(null) }
         var isLoading by remember { mutableStateOf(false) }
+        var planesDetected by remember { mutableStateOf(false) }
+        var modelPlaced by remember { mutableStateOf(false) }
+        var showScanAnimation by remember { mutableStateOf(true) }
+        var showTapAnimation by remember { mutableStateOf(false) }
+        var showMoveAnimation by remember { mutableStateOf(false) }
+        var tapSession by remember { mutableStateOf(false) }
+
 
         Box(modifier = Modifier.fillMaxSize()) {
             ARScene(
@@ -174,13 +186,28 @@ class ArViewerActivity : ComponentActivity() {
                 },
                 cameraNode = cameraNode,
                 onTrackingFailureChanged = { trackingFailureReason = it },
-                onSessionUpdated = { _, updatedFrame -> frame = updatedFrame },
+                onSessionUpdated = { _, updatedFrame ->
+                    frame = updatedFrame
+                    if (updatedFrame.getUpdatedPlanes().isNotEmpty()) {
+                        planesDetected = true
+                        showScanAnimation = false
+                        if (!tapSession) {
+                            showTapAnimation = true
+                        }
+                    }
+                },
                 onGestureListener = rememberOnGestureListener(onSingleTapConfirmed = { motionEvent, _ ->
-                    if (!isLoading) {
+                    if (!isLoading && planesDetected && !modelPlaced) {
+                        showTapAnimation = false
+                        tapSession = true
                         handleTap(
                             motionEvent, frame, engine, modelLoader, materialLoader, childNodes
                         ) {
                             isLoading = it
+                            if (!it) {
+                                modelPlaced = true
+                                showMoveAnimation = true
+                            }
                         }
                     }
                 })
@@ -193,10 +220,27 @@ class ArViewerActivity : ComponentActivity() {
             ) {
                 InfoText(
                     trackingFailureReason = trackingFailureReason,
-                    childNodesEmpty = childNodes.isEmpty(),
                     errorMessage = errorMessage,
-                    isLoading = isLoading
+                    isLoading = isLoading,
+                    planesDetected = planesDetected,
+                    modelPlaced = modelPlaced
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        showScanAnimation -> ScanAnimation()
+                        showTapAnimation && !isLoading -> TapAnimation()
+                        showMoveAnimation -> MoveAnimation(showMoveAnimation = showMoveAnimation,
+                            onAnimationComplete = { showMoveAnimation = false })
+                    }
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -211,13 +255,99 @@ class ArViewerActivity : ComponentActivity() {
                 )
             }
         }
+    }
 
+    @Composable
+    fun ScanAnimation() {
+        val composition by rememberLottieComposition(
+            LottieCompositionSpec.RawRes(R.raw.animation_scan)
+        )
+        val progress by animateLottieCompositionAsState(
+            composition = composition, iterations = LottieConstants.IterateForever
+        )
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.height(300.dp),
+        )
+    }
 
+    @Composable
+    fun TapAnimation() {
+        val composition by rememberLottieComposition(
+            LottieCompositionSpec.RawRes(R.raw.animation_tap)
+        )
+        val progress by animateLottieCompositionAsState(
+            composition = composition, iterations = LottieConstants.IterateForever
+        )
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.height(300.dp),
+        )
+    }
+
+    @Composable
+    fun MoveAnimation(showMoveAnimation: Boolean, onAnimationComplete: () -> Unit) {
+        val composition by rememberLottieComposition(
+            LottieCompositionSpec.RawRes(R.raw.animation_move)
+        )
+        val progress by animateLottieCompositionAsState(
+            composition = composition, iterations = 1
+        )
+
+        if (showMoveAnimation) {
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.height(300.dp),
+            )
+
+            if (progress == 1.0f) {
+                onAnimationComplete()
+            }
+        }
+    }
+
+    @Composable
+    fun InfoText(
+        trackingFailureReason: TrackingFailureReason?,
+        errorMessage: String?,
+        isLoading: Boolean,
+        planesDetected: Boolean,
+        modelPlaced: Boolean,
+    ) {
+        val context = LocalContext.current
+        val text = when {
+            errorMessage != null -> errorMessage
+            isLoading -> stringResource(R.string.loading_model)
+            trackingFailureReason != null -> trackingFailureReason.getDescription(context)
+            !planesDetected -> stringResource(R.string.move_phone_to_detect_surfaces)
+            !modelPlaced -> stringResource(R.string.tap_anywhere_to_add_model)
+            else -> stringResource(R.string.model_placed)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 32.dp),
+                textAlign = TextAlign.Center,
+                fontSize = 18.sp,
+                color = Color.White,
+                text = text
+            )
+        }
     }
 
     @Composable
     fun BottomControls(colors: List<Color>) {
         var isListVisible by remember { mutableStateOf(false) }
+        var selectedMaterialIndex by remember { mutableIntStateOf(0) }
 
         Column(
             modifier = Modifier
@@ -355,39 +485,6 @@ class ArViewerActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun InfoText(
-        trackingFailureReason: TrackingFailureReason?,
-        childNodesEmpty: Boolean,
-        errorMessage: String?,
-        isLoading: Boolean,
-    ) {
-        val context = LocalContext.current
-        val text = when {
-            errorMessage != null -> errorMessage
-            isLoading -> stringResource(R.string.loading_model)
-            trackingFailureReason != null -> trackingFailureReason.getDescription(context)
-            childNodesEmpty -> stringResource(R.string.tap_anywhere_to_add_model)
-            else -> stringResource(R.string.model_placed)
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-        ) {
-            Text(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 32.dp),
-                textAlign = TextAlign.Center,
-                fontSize = 18.sp,
-                color = Color.White,
-                text = text
-            )
-        }
-    }
-
     private fun handleTap(
         motionEvent: MotionEvent,
         frame: Frame?,
@@ -470,10 +567,10 @@ class ArViewerActivity : ComponentActivity() {
 
     private fun resetColors() {
         selectedColorIndices.clear()
-        selectedMaterialIndex = 0
+        selectedMaterialIndex=0
         savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
             colorMap[index] = materialInstance
-            materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 1.0f)
+            materialInstance.setParameter("baseColorFactor",1.0f, 1.0f, 1.0f, 1.0f)
         }
     }
 

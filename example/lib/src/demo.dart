@@ -26,16 +26,15 @@ class _DemoState extends State<Demo> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _arViewerPlugin.loadModel(
-      modelUrl: modelUrl,
-      colors: colors,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return const Scaffold();
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.chevron_right_rounded),
+        onPressed: () => _arViewerPlugin.loadModel(
+          modelUrl: modelUrl,
+          colors: colors,
+        ),
+      ),
+    );
   }
 }
