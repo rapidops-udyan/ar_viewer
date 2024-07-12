@@ -1,6 +1,5 @@
 package com.rapidops.ar_viewer
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -72,7 +71,6 @@ import io.github.sceneview.ar.scene.PlaneRenderer
 import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.material.setBaseColorMap
-import io.github.sceneview.material.setParameter
 import io.github.sceneview.math.Position
 import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.node.ModelNode
@@ -227,9 +225,10 @@ class ArViewerActivity : ComponentActivity() {
                 .padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
         ) {
             if (isListVisible) {
-                VerticalList(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                VerticalList(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
                     onItemClick = {
                         selectedMaterialIndex = it
                         isListVisible = false
@@ -455,22 +454,26 @@ class ArViewerActivity : ComponentActivity() {
         val g = color.green
         val b = color.blue
 
-        colorMap.getOrNull(materialIndex)?.apply {
 
+        if (selectedMaterialIndex in colorMap.indices) {
             val texture = createTextureFromUriAndColor()
-            if (texture != null) {
-                setBaseColorMap(texture)
+            colorMap[selectedMaterialIndex] = colorMap[selectedMaterialIndex].apply {
+                // Set the base color factor to the desired color
+                setParameter("baseColorFactor", r, g, b, 1.0f)
+                if (texture != null) {
+                    setBaseColorMap(texture)
+                }
             }
-            setParameter("baseColorFactor", r, g, b, 1.0f)
         }
+
     }
 
     private fun resetColors() {
         selectedColorIndices.clear()
-        selectedMaterialIndex=0
+        selectedMaterialIndex = 0
         savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
             colorMap[index] = materialInstance
-            materialInstance.setParameter("baseColorFactor",1.0f, 1.0f, 1.0f, 1.0f)
+            materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 1.0f)
         }
     }
 
@@ -481,7 +484,7 @@ class ArViewerActivity : ComponentActivity() {
 
     private val changeImage =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == Activity.RESULT_OK) {
+            if (it.resultCode == RESULT_OK) {
                 val data = it.data
                 imgUri = data?.data
                 imgUri?.let { uri ->
@@ -491,7 +494,9 @@ class ArViewerActivity : ComponentActivity() {
                                 createTextureFromUriAndColor()
                             }
                             withContext(Dispatchers.Main) {
-                                texture?.let { applyTextureToMaterial(it) }
+                                if (texture != null) {
+                                    applyTextureToMaterial(texture)
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e("ArViewerActivity", "Error creating texture", e)
@@ -509,42 +514,51 @@ class ArViewerActivity : ComponentActivity() {
     private fun createTextureFromUriAndColor(): Texture? {
         val buffer: ByteBuffer
         val texture: Texture
+
         return try {
-            val uri = imgUri ?: return null
-            val inputStream = contentResolver.openInputStream(uri)
-            if (inputStream == null) {
-                Log.e("IMAGEURI", "Error: InputStream is null for URI: $uri")
-                return null
-            }
+            if (imgUri != null) {
+                Log.d("ImageURI", "IMAGE URI IS $imgUri")
+                val inputStream = contentResolver.openInputStream(imgUri!!)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
 
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
+                val width = bitmap.width
+                val height = bitmap.height
+                buffer =
+                    ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
+                bitmap.copyPixelsToBuffer(buffer)
+                buffer.flip()
 
-            if (bitmap == null) {
-                Log.e(
-                    "IMAGEURI", "Error: Bitmap is null after decoding InputStream for URI: $uri"
+                texture = Texture.Builder().width(width).height(height).levels(1)
+                    .sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.RGBA8)
+                    .build(engineCopy!!)
+
+                val pixelBufferDescriptor = Texture.PixelBufferDescriptor(
+                    buffer, Texture.Format.RGBA, Texture.Type.UBYTE
                 )
-                return null
+                texture.setImage(engineCopy!!, 0, pixelBufferDescriptor)
+
+                texture
+            } else {
+                // Handle case where imgUri is null (if needed)
+                buffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
+                buffer.put(0, 255.toByte()) // Red
+                buffer.put(1, 255.toByte()) // Green
+                buffer.put(2, 255.toByte()) // Blue
+                buffer.put(3, 255.toByte()) // Alpha
+
+                texture = Texture.Builder().width(1).height(1).levels(1)
+                    .sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.RGBA8)
+                    .build(engineCopy!!)
+
+                val pixelBufferDescriptor = Texture.PixelBufferDescriptor(
+                    buffer, Texture.Format.RGBA, Texture.Type.UBYTE
+                )
+                texture.setImage(engineCopy!!, 0, pixelBufferDescriptor)
+                texture
             }
-
-            val width = bitmap.width
-            val height = bitmap.height
-
-            buffer = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
-            bitmap.copyPixelsToBuffer(buffer)
-            buffer.flip()
-
-            texture = Texture.Builder().width(width).height(height).levels(1)
-                .sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.RGBA8)
-                .build(engineCopy!!)
-
-            val pixelBufferDescriptor = Texture.PixelBufferDescriptor(
-                buffer, Texture.Format.RGBA, Texture.Type.UBYTE
-            )
-            texture.setImage(engineCopy!!, 0, pixelBufferDescriptor)
-
-            texture
         } catch (e: Exception) {
+            e.printStackTrace()
             Toast.makeText(this, "Failed to create texture", Toast.LENGTH_SHORT).show()
             null
         }
