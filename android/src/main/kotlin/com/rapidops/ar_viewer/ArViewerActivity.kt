@@ -107,7 +107,14 @@ class ArViewerActivity : ComponentActivity() {
     var selectedColorIndices = mutableStateListOf<Int>()  // store selected color indices
     var imgUri: Uri? = null     // store image uri if image is selected
     var selectedMaterialIndex = 0 // store selected material index
+    var defaultMaterial: MutableList<MaterialInstance> = mutableListOf()
+    var anchorNodeCopy: AnchorNode? = null
+    var anchorCopy: Anchor? = null
     var engineCopy: Engine? = null
+    var frameCopy: Frame? = null
+    var modelLoaderCopy: ModelLoader? = null
+    var materialLoaderCopy: MaterialLoader? = null
+    var modelNodeCopy: ModelNode? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -200,6 +207,9 @@ class ArViewerActivity : ComponentActivity() {
                     if (!isLoading && planesDetected && !modelPlaced) {
                         showTapAnimation = false
                         tapSession = true
+                        frameCopy = frame
+                        engineCopy = engine
+                        materialLoaderCopy = materialLoader
                         handleTap(
                             motionEvent, frame, engine, modelLoader, materialLoader, childNodes
                         ) {
@@ -355,10 +365,9 @@ class ArViewerActivity : ComponentActivity() {
                 .padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
         ) {
             if (isListVisible) {
-                VerticalList(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                VerticalList(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
                     onItemClick = {
                         selectedMaterialIndex = it
                         isListVisible = false
@@ -529,8 +538,12 @@ class ArViewerActivity : ComponentActivity() {
                 materialList.add(materialInstance.name)
                 if (index < colorMap.size) {
                     colorMap[index] = materialInstance
+                    defaultMaterial[index] = materialInstance
+
                 } else {
                     colorMap.add(materialInstance)
+                    defaultMaterial.add(materialInstance)
+
                 }
             }
             ModelNode(modelInstance = modelInstance, scaleToUnits = 0.5f)
@@ -542,9 +555,52 @@ class ArViewerActivity : ComponentActivity() {
             position = Position(0f, 0f, 0f)
         }
 
+        modelNodeCopy = modelNode
         anchorNode.addChildNode(modelNode)
+        anchorNodeCopy = anchorNode
         return anchorNode
     }
+
+
+    fun resetColors() {
+        selectedColorIndices.clear()
+        selectedMaterialIndex = 0
+//        colorMap[0]=savedModelInstance?.materialInstances?.get(0)!!
+//        modelNodeCopy?.materialInstances?.forEachIndexed { index, materialInstances ->
+////            colorMap[index] = materialInstances[index]
+////            savedModelInstance=materialInstances[index]
+//        }
+//        savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
+//            colorMap[index] = materialInstance
+//            materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 1.0f)
+//        }
+
+
+//        to change texture to default
+        if (selectedMaterialIndex in colorMap.indices) {
+            imgUri = null
+            val texture = createTextureFromUriAndColor()
+
+//            colorMap[selectedMaterialIndex] = colorMap[selectedMaterialIndex].apply {
+//                // Set the base color factor to the desired color
+//                setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 0.0f)
+//                if (texture != null) {
+//                    setBaseColorMap(texture)
+//                }
+//            }
+            colorMap.forEachIndexed() { index, materialInstance ->
+
+//                materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 0.0f)
+//                if (texture != null) {
+//                    setColor(androidx.compose.ui.graphics.Color(1, 1, 1, 1), index)4
+//                    getColor(1)
+//
+//                }
+            }
+        }
+
+    }
+
 
     private fun setColor(color: Color, materialIndex: Int) {
         val r = color.red
@@ -563,15 +619,6 @@ class ArViewerActivity : ComponentActivity() {
             }
         }
 
-    }
-
-    private fun resetColors() {
-        selectedColorIndices.clear()
-        selectedMaterialIndex=0
-        savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
-            colorMap[index] = materialInstance
-            materialInstance.setParameter("baseColorFactor",1.0f, 1.0f, 1.0f, 1.0f)
-        }
     }
 
     private fun imagePicker() {
