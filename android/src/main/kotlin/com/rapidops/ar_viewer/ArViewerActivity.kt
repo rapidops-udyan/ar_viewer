@@ -380,7 +380,10 @@ class ArViewerActivity : ComponentActivity() {
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Button(
-                    onClick = { resetColors() },
+                    onClick = {
+                        resetColors()
+                    },
+
                     modifier = Modifier.size(48.dp),
                     contentPadding = PaddingValues(0.dp),
                     shape = CircleShape,
@@ -563,42 +566,8 @@ class ArViewerActivity : ComponentActivity() {
 
 
     fun resetColors() {
-        selectedColorIndices.clear()
-        selectedMaterialIndex = 0
-//        colorMap[0]=savedModelInstance?.materialInstances?.get(0)!!
-//        modelNodeCopy?.materialInstances?.forEachIndexed { index, materialInstances ->
-////            colorMap[index] = materialInstances[index]
-////            savedModelInstance=materialInstances[index]
-//        }
-//        savedModelInstance?.materialInstances?.forEachIndexed { index, materialInstance ->
-//            colorMap[index] = materialInstance
-//            materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 1.0f)
-//        }
-
-
-//        to change texture to default
-        if (selectedMaterialIndex in colorMap.indices) {
-            imgUri = null
-            val texture = createTextureFromUriAndColor()
-
-//            colorMap[selectedMaterialIndex] = colorMap[selectedMaterialIndex].apply {
-//                // Set the base color factor to the desired color
-//                setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 0.0f)
-//                if (texture != null) {
-//                    setBaseColorMap(texture)
-//                }
-//            }
-            colorMap.forEachIndexed() { index, materialInstance ->
-
-//                materialInstance.setParameter("baseColorFactor", 1.0f, 1.0f, 1.0f, 0.0f)
-//                if (texture != null) {
-//                    setColor(androidx.compose.ui.graphics.Color(1, 1, 1, 1), index)4
-//                    getColor(1)
-//
-//                }
-            }
-        }
-
+//        working approach re create screen
+        recreate()
     }
 
 
